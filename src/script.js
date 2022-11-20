@@ -7,7 +7,7 @@ import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import typefaceFont from "three/examples/fonts/helvetiker_regular.typeface.json";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper.js";
-import { PointLightHelper } from "three";
+import { MeshPhysicalMaterial, PointLightHelper } from "three";
 /**
  * Base
  */
@@ -102,7 +102,7 @@ const run = async () => {
 
   //point2
   const pointLight2 = new THREE.PointLight("pink", 4);
-  pointLight2.position.set(0, 1, 3);
+  pointLight2.position.set(0, 1, -3);
   const pointLightHelper2 = new THREE.PointLightHelper(pointLight2);
 
   scene.add(pointLight2, pointLightHelper2);
@@ -141,7 +141,7 @@ const run = async () => {
     // wireframe: true,
   });
   crystalMesh.scale.set(1.2, 1.2, 1.2);
-  crystalMesh.position.set(0, -0.5, -0.5);
+  crystalMesh.position.set(0, 0, -0.5);
   scene.add(crystalMesh);
   gui.add(crystalMesh.material, "thickness", 0, 10, 0.1);
   // areaLight.lookAt(crystalMesh.position);
@@ -158,6 +158,24 @@ const run = async () => {
   //
   //
   //
+  //          animation test
+
+  //
+  //
+  //
+  // let mixer = null;
+
+  // const flowersAnimation = await gltfLoader.loadAsync(
+  //   "/models/flowers_short_animation.glb"
+  // );
+  // const flowersAnimationMesh = flowersAnimation.scene.children[0];
+
+  // mixer = new THREE.AnimationMixer(flowersAnimation.scene);
+  // const action = mixer.clipAction(flowersAnimation.scene.animations[0]);
+  // action.play();
+  // console.log(flowersAnimation);
+  // scene.add(flowersAnimationMesh);
+
   //group
   const flowerTallGroup = new THREE.Group();
   //stems
@@ -166,16 +184,19 @@ const run = async () => {
   );
   const flowersTallStemsMesh = flowersTallStems.scene.children[0];
 
-  flowersTallStemsMesh.material = new THREE.MeshPhysicalMaterial({});
+  // flowersTallStemsMesh.material = new THREE.MeshPhysicalMaterial({
+  //   emissiveIntensity: 0,
+  // });
 
   //flowers
   const flowersTallFlowers = await gltfLoader.loadAsync(
     "models/flowers_tall_flowers.glb"
   );
   const flowersTallFlowersMesh = flowersTallFlowers.scene.children[0];
-  flowersTallStemsMesh.material = new THREE.MeshPhysicalMaterial({});
+  // flowersTallStemsMesh.material = new THREE.MeshPhysicalMaterial({});
 
   flowerTallGroup.add(flowersTallStemsMesh, flowersTallFlowersMesh);
+  console.log(flowersTallStemsMesh.material);
 
   //position
   flowerTallGroup.position.set(-1.5, -1.3, -1.2);
@@ -223,7 +244,7 @@ const run = async () => {
 
   flowerShortGroup.add(flowerGroup1, flowerGroup2);
   scene.add(flowerShortGroup);
-  console.log(flowersShortStemsMesh);
+  // console.log(flowersShortStemsMesh);
   //   directionalLight.lookAt(crystalMesh);
 
   //
@@ -234,6 +255,8 @@ const run = async () => {
 
   const grass = await gltfLoader.loadAsync("models/grass.glb");
   const grassMesh = grass.scene.children[0];
+  grassMesh.position.set(0, -1.3, 0);
+
   scene.add(grassMesh);
 
   const grassNew = grassMesh.clone();
@@ -257,6 +280,12 @@ const run = async () => {
   logoMesh.position.set(0, 1.2, 0);
   // logoMesh.scale.set();
   scene.add(logoMesh);
+
+  //
+  //
+  //
+  ///
+  //          MENU
   /**
    * Fonts
    */
@@ -267,38 +296,124 @@ const run = async () => {
   );
 
   // Material
-  const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture });
+  // const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture });
+  const menuMaterial = new THREE.MeshPhysicalMaterial({ color: "pink" });
 
   // Text
-  const textGeometry = new TextGeometry("brunaaart", {
-    font: font,
-    size: 0.5,
-    height: 0.2,
-    curveSegments: 12,
-    bevelEnabled: true,
-    bevelThickness: 0.03,
-    bevelSize: 0.02,
-    bevelOffset: 0,
-    bevelSegments: 5,
-  });
-  textGeometry.center();
-
-  const text = new THREE.Mesh(textGeometry, material);
-  text.position.set(0, 0, -2);
-  scene.add(text);
-
-  //cube
-  const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-  const cubeMaterial = new THREE.MeshPhysicalMaterial({
-    color: "pink",
-    metalness: 0.5,
-    reflectivity: 1,
-  });
-  const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-  cube.position.set(3, 0, 0);
-  scene.add(cube);
 
   ///
+  //
+  //  text parameters
+  const textParameters = {
+    font: font,
+    size: 0.1,
+    height: 0.01,
+    // curveSegments: 12,
+    // bevelEnabled: true,
+    // bevelThickness: 0.03,
+    // bevelSize: 0.02,
+    // bevelOffset: 0,
+    // bevelSegments: 5,
+  };
+
+  //projects
+  const textGeometry1 = new TextGeometry("projects", textParameters);
+  textGeometry1.center();
+
+  const text1 = new THREE.Mesh(textGeometry1, menuMaterial);
+  text1.position.set(-2.5, 1.4, 0);
+
+  //about
+  const textGeometry2 = new TextGeometry("about", textParameters);
+
+  textGeometry2.center();
+
+  const text2 = new THREE.Mesh(textGeometry2, menuMaterial);
+  text2.position.set(-1.5, 1.4, 0);
+
+  //ista
+  const textGeometry3 = new TextGeometry("instagram", textParameters);
+
+  textGeometry3.center();
+
+  const text3 = new THREE.Mesh(textGeometry3, menuMaterial);
+  text3.position.set(1.5, 1.4, 0);
+
+  //more
+  const textGeometry4 = new TextGeometry("more", textParameters);
+
+  textGeometry4.center();
+
+  const text4 = new THREE.Mesh(textGeometry4, menuMaterial);
+  text4.position.set(2.5, 1.4, 0);
+
+  //add to the scene
+  scene.add(text1, text2, text3, text4);
+
+  //cube
+  const bgMaterial = textureLoader.load("textures/clouds.jpg");
+  const cubeGeometry = new THREE.BoxGeometry(16, 10, 0.1);
+  const cubeMaterial = new THREE.MeshBasicMaterial({
+    color: "pink",
+    map: bgMaterial,
+  });
+  const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+  cube.position.set(0, 0, -5);
+  scene.add(cube);
+  console.log(cubeMaterial);
+
+  //
+  //
+  //
+  //          FLOOR DISC
+
+  ///
+
+  const floorDisc = new THREE.Mesh(
+    new THREE.CylinderGeometry(3, 3, 0.1, 32, 1),
+    new THREE.MeshBasicMaterial({ color: "#2c352c" })
+  );
+  floorDisc.position.set(0, -1.4, 0);
+  scene.add(floorDisc);
+
+  //
+  //
+  //
+  //        PARTICLES
+  //
+  //
+  //
+  // Geometry
+  const particlesGeometry = new THREE.BufferGeometry();
+  const count = 500;
+
+  const positions = new Float32Array(count * 3); // Multiply by 3 because each position is composed of 3 values (x, y, z)
+
+  for (
+    let i = 0;
+    i < count * 3;
+    i++ // Multiply by 3 for same reason
+  ) {
+    positions[i] = (Math.random() - 0.5) * 10; // Math.random() - 0.5 to have a random value between -0.5 and +0.5
+  }
+
+  particlesGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(positions, 3)
+  ); // Create the Three.js BufferAttribute and specify that each information is composed of 3 values
+  //
+  //
+  // Material
+  const particlesMaterial = new THREE.PointsMaterial({
+    size: 0.02,
+    sizeAttenuation: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  // Points
+  const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+  scene.add(particles);
+
   //
   //
   //
@@ -368,6 +483,11 @@ const run = async () => {
     const elapsedTime = clock.getElapsedTime();
     //   const deltaTime = elapsedTime - previousTime;
     //   previousTime = elapsedTime;
+
+    // //update models animation
+    // if (mixer) {
+    //   mixer.update(deltaTime);
+    // }
 
     crystalMesh.rotation.y = elapsedTime * 0.3;
 
