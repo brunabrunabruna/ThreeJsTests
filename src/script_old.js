@@ -8,6 +8,20 @@ import typefaceFont from "three/examples/fonts/helvetiker_regular.typeface.json"
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper.js";
 import { MeshPhysicalMaterial, PointLightHelper } from "three";
+import {
+  Camera,
+  cloneUniformsGroups,
+  Mesh,
+  MeshBasicMaterial,
+  MeshNormalMaterial,
+  MeshStandardMaterial,
+  PointLight,
+  Scene,
+  SkinnedMesh,
+  SphereGeometry,
+} from "three";
+import { RenderPass, UnrealBloomPass, EffectComposer } from "three-stdlib";
+import exportedFunction, { secondFunction } from "./test";
 /**
  * Base
  */
@@ -41,6 +55,7 @@ const run = async () => {
   const GlassRoughness = await textureLoader.loadAsync(
     "/textures/glass/roughness.jpg"
   );
+  const cloudsTex = await textureLoader.loadAsync("/textures/clouds.jpg");
   const environmentMapTexture = cubeTextureLoader.load(
     [
       "/cubemap/px.png",
@@ -60,17 +75,20 @@ const run = async () => {
     // }
   );
 
-  const cubeBackground = new THREE.Mesh(
+  const sphereBackground = new THREE.Mesh(
     new THREE.SphereGeometry(10, 60, 60),
     new THREE.MeshBasicMaterial({
-      envMap: environmentMapTexture,
+      // envMap: environmentMapTexture,
+      map: cloudsTex,
       side: THREE.DoubleSide,
     })
   );
-  cubeBackground.rotation.z = Math.PI;
+  sphereBackground.rotation.z = Math.PI;
   // scene.add(cubeBackground);
-  cubeBackground.rotation.z = 30;
-  //   scene.add(cubeBackground);
+  sphereBackground.rotation.z = 30;
+
+  //add cube background
+  scene.add(sphereBackground);
   //   scene.background = cubeBackground;
   //   scene.background = material.envMap;
   //
@@ -93,7 +111,7 @@ const run = async () => {
   // scene.add(ambientLight);
 
   //point1
-  const pointLight = new THREE.PointLight("white", 10);
+  const pointLight = new THREE.PointLight("white", 6);
   const pointLightHelper = new THREE.PointLightHelper(pointLight);
   pointLight.position.set(0, 4, 0.5);
 
@@ -115,6 +133,11 @@ const run = async () => {
   //
   //
   //      CRYSTAL
+  //
+  //
+  //
+  //
+
   const gltf = await gltfLoader.loadAsync("models/crystal.gltf");
   const crystalMesh = gltf.scene.children[0];
   // console.log(gltf);
@@ -124,6 +147,7 @@ const run = async () => {
     envMap: environmentMapTexture,
     normalMap: GlassNormal,
     aoMap: GlassAO,
+    // ior: 1,
     // aoMapIntensity: 1,
     roughnessMap: GlassRoughness,
 
@@ -131,9 +155,9 @@ const run = async () => {
     // displacementScale: 0.1,
     reflectivity: 1,
     roughness: 0.3,
-    clearcoat: 0.3,
+    clearcoat: 0.8,
     transmission: 1,
-    ior: 1.2,
+    ior: 1.3,
     thickness: 5,
     side: THREE.DoubleSide,
     // opacity: 0.5,
@@ -144,6 +168,7 @@ const run = async () => {
   crystalMesh.position.set(0, 0, -0.5);
   scene.add(crystalMesh);
   gui.add(crystalMesh.material, "thickness", 0, 10, 0.1);
+  gui.add(crystalMesh.material, "ior", 1, 5, 0.01);
   // areaLight.lookAt(crystalMesh.position);
   //heart
   const heart = await gltfLoader.loadAsync("models/heart.gltf");
@@ -162,19 +187,33 @@ const run = async () => {
 
   //
   //
-  //
-  // let mixer = null;
+  // //
 
-  // const flowersAnimation = await gltfLoader.loadAsync(
-  //   "/models/flowers_short_animation.glb"
+  // const aniModel = gltfLoader.load("models/flowers_short_animation2.gltf");
+  // const aniModelMesh = aniModel.scene.children[0].animation[0];
+  // let mixer = new THREE.AnimationMixer(aniModelMesh);
+  // console.log(aniModelMesh);
+  // //GLTF LOADER
+  // // const gltfLoader = new GLTFLoader();
+  // gltfLoader.load(
+  //   "/models/flowers_short_animation2.gltf",
+  //   (gltf) => {
+  //     gltf.scene.scale.set(1, 1, 1);
+  //     gltf.scene.position.y = -1.3;
+  //     gltf.scene.position.z = -0.6;
+  //     console.log(gltf);
+
+  //     scene.add(gltf.scene);
+
+  //     mixer = new THREE.AnimationMixer(gltf.scene);
+  //     const action = mixer.clipAction(gltf.animations[0]);
+  //     action.play();
+  //   },
+  //   undefined,
+  //   (error) => {
+  //     // console.log(error:${error});
+  //   }
   // );
-  // const flowersAnimationMesh = flowersAnimation.scene.children[0];
-
-  // mixer = new THREE.AnimationMixer(flowersAnimation.scene);
-  // const action = mixer.clipAction(flowersAnimation.scene.animations[0]);
-  // action.play();
-  // console.log(flowersAnimation);
-  // scene.add(flowersAnimationMesh);
 
   //group
   const flowerTallGroup = new THREE.Group();
@@ -184,19 +223,19 @@ const run = async () => {
   );
   const flowersTallStemsMesh = flowersTallStems.scene.children[0];
 
-  // flowersTallStemsMesh.material = new THREE.MeshPhysicalMaterial({
-  //   emissiveIntensity: 0,
-  // });
-
+  // flowersTallStemsMesh.material.color = { r: 0, g: 0, b: 1 };
   //flowers
   const flowersTallFlowers = await gltfLoader.loadAsync(
     "models/flowers_tall_flowers.glb"
   );
   const flowersTallFlowersMesh = flowersTallFlowers.scene.children[0];
-  // flowersTallStemsMesh.material = new THREE.MeshPhysicalMaterial({});
+  // flowersTallFlowersMesh.material = new THREE.MeshPhysicalMaterial({
+  //   color: "blue",
+  // });
+  // flowersTallFlowersMesh.material.color = { r: 0, g: 0, b: 1 };
 
   flowerTallGroup.add(flowersTallStemsMesh, flowersTallFlowersMesh);
-  console.log(flowersTallStemsMesh.material);
+  // console.log(flowersTallStemsMesh.material.color);
 
   //position
   flowerTallGroup.position.set(-1.5, -1.3, -1.2);
@@ -209,31 +248,46 @@ const run = async () => {
   //
   //
   //short
-  const flowerShortGroup = new THREE.Group();
+  // const flowerShortGroup = new THREE.Group();
   const flowersShortStems = await gltfLoader.loadAsync(
     "models/flowers_short_stems.glb"
   );
   const flowersShortFlowers = await gltfLoader.loadAsync(
     "models/flowers_short_flowers.glb"
   );
-  const flowersShortStems2 = await gltfLoader.loadAsync(
-    "models/flowers_short_stems.glb"
+  const flowersShortCenter = await gltfLoader.loadAsync(
+    "models/flowers_short_center.glb"
   );
-  const flowersShortFlowers2 = await gltfLoader.loadAsync(
-    "models/flowers_short_flowers.glb"
-  );
-  const flowerGroup1 = new THREE.Group();
-  flowerGroup1.position.set(2, -1.3, 0);
+  // const flowersShortStems2 = await gltfLoader.loadAsync(
+  //   "models/flowers_short_stems.glb"
+  // );
+  // const flowersShortFlowers2 = await gltfLoader.loadAsync(
+  //   "models/flowers_short_flowers.glb"
+  // );
+  const flowerGroup = new THREE.Group();
+  flowerGroup.position.set(2, -1.3, 0);
   const flowersShortStemsMesh = flowersShortStems.scene.children[0];
   const flowersShortFlowersMesh = flowersShortFlowers.scene.children[0];
-  flowerGroup1.add(flowersShortStemsMesh, flowersShortFlowersMesh);
+  const flowersShortCenterMesh = flowersShortCenter.scene.children[0];
+  // flowersShortFlowersMesh.material = new THREE.MeshPhysicalMaterial({
+  //   color: "pink",
+  // });
+  flowerGroup.add(
+    flowersShortStemsMesh,
+    flowersShortFlowersMesh,
+    flowersShortCenterMesh
+  );
+  const flowerGroup2 = flowerGroup.clone();
+  flowerGroup.position.set(-2, -1.3, 0);
 
-  const flowerGroup2 = new THREE.Group();
-  flowerGroup2.position.set(-2, -1.3, 0);
+  scene.add(flowerGroup, flowerGroup2);
 
-  const flowersShortStemsMesh2 = flowersShortStems2.scene.children[0];
-  const flowersShortFlowersMesh2 = flowersShortFlowers2.scene.children[0];
-  flowerGroup2.add(flowersShortStemsMesh2, flowersShortFlowersMesh2);
+  // const flowerGroup2 = new THREE.Group();
+  // flowerGroup2.position.set(-2, -1.3, 0);
+
+  // const flowersShortStemsMesh2 = flowersShortStems2.scene.children[0];
+  // const flowersShortFlowersMesh2 = flowersShortFlowers2.scene.children[0];
+  // flowerGroup2.add(flowersShortStemsMesh2, flowersShortFlowersMesh2);
   // flowersShortMesh.material = new THREE.MeshStandardMaterial({
   //   // color: "#fff",
   //   // transparent: true,
@@ -242,8 +296,7 @@ const run = async () => {
   //   // side: THREE.DoubleSide,
   // });
 
-  flowerShortGroup.add(flowerGroup1, flowerGroup2);
-  scene.add(flowerShortGroup);
+  // flowerShortGroup.add(flowerGroup);
   // console.log(flowersShortStemsMesh);
   //   directionalLight.lookAt(crystalMesh);
 
@@ -256,14 +309,21 @@ const run = async () => {
   const grass = await gltfLoader.loadAsync("models/grass.glb");
   const grassMesh = grass.scene.children[0];
   grassMesh.position.set(0, -1.3, 0);
+  grassMesh.scale.set(2, 2, 2);
+  // grassMesh.material.color = { r: 0, g: 0, b: 1 };
+  scene.add(grass);
+  console.log(grassMesh.material);
 
-  scene.add(grassMesh);
+  // const grassNew = grassMesh.clone();
+  // grassNew.position.set(2, -1.3, 0);
+  // scene.add(grassNew);
 
-  const grassNew = grassMesh.clone();
-  grassNew.position.set(0, -1.3, 0);
-  scene.add(grassNew);
-
-  for (let i = 0; i < 10; i++) {}
+  for (let i = 0; i < 50; i++) {
+    const grassNew = grassMesh.clone();
+    grassNew.position.x = (Math.random() - 0.5) * 4.5;
+    grassNew.position.z = (Math.random() - 0.5) * 4.5;
+    scene.add(grassNew);
+  }
   //
   //
   //   LOGO
@@ -274,7 +334,7 @@ const run = async () => {
   const logo = await gltfLoader.loadAsync("models/my_logo.gltf");
   const logoMesh = logo.scene.children[0];
   logoMesh.material = new THREE.MeshPhysicalMaterial({
-    color: "#fff",
+    color: "white",
     metalness: 0.5,
   });
   logoMesh.position.set(0, 1.2, 0);
@@ -297,7 +357,7 @@ const run = async () => {
 
   // Material
   // const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture });
-  const menuMaterial = new THREE.MeshPhysicalMaterial({ color: "pink" });
+  const menuMaterial = new THREE.MeshPhysicalMaterial({ color: "white" });
 
   // Text
 
@@ -354,13 +414,13 @@ const run = async () => {
   const bgMaterial = textureLoader.load("textures/clouds.jpg");
   const cubeGeometry = new THREE.BoxGeometry(16, 10, 0.1);
   const cubeMaterial = new THREE.MeshBasicMaterial({
-    color: "pink",
+    color: "white",
     map: bgMaterial,
   });
   const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
   cube.position.set(0, 0, -5);
   scene.add(cube);
-  console.log(cubeMaterial);
+  // console.log(cubeMaterial);
 
   //
   //
@@ -369,12 +429,15 @@ const run = async () => {
 
   ///
 
-  const floorDisc = new THREE.Mesh(
-    new THREE.CylinderGeometry(3, 3, 0.1, 32, 1),
-    new THREE.MeshBasicMaterial({ color: "#2c352c" })
+  const floorPlane = new THREE.Mesh(
+    new THREE.BoxGeometry(5, 0.1, 5, 1, 1, 1),
+    new THREE.MeshBasicMaterial({ color: "#421d6b" })
   );
-  floorDisc.position.set(0, -1.4, 0);
-  scene.add(floorDisc);
+  floorPlane.position.set(0, -1.4, 0);
+  scene.add(floorPlane);
+
+  exportedFunction();
+  secondFunction();
 
   //
   //
@@ -383,36 +446,36 @@ const run = async () => {
   //
   //
   //
-  // Geometry
-  const particlesGeometry = new THREE.BufferGeometry();
-  const count = 500;
+  // // Geometry
+  // const particlesGeometry = new THREE.BufferGeometry();
+  // const count = 500;
 
-  const positions = new Float32Array(count * 3); // Multiply by 3 because each position is composed of 3 values (x, y, z)
+  // const positions = new Float32Array(count * 3); // Multiply by 3 because each position is composed of 3 values (x, y, z)
 
-  for (
-    let i = 0;
-    i < count * 3;
-    i++ // Multiply by 3 for same reason
-  ) {
-    positions[i] = (Math.random() - 0.5) * 10; // Math.random() - 0.5 to have a random value between -0.5 and +0.5
-  }
+  // for (
+  //   let i = 0;
+  //   i < count * 3;
+  //   i++ // Multiply by 3 for same reason
+  // ) {
+  //   positions[i] = (Math.random() - 0.5) * 10; // Math.random() - 0.5 to have a random value between -0.5 and +0.5
+  // }
 
-  particlesGeometry.setAttribute(
-    "position",
-    new THREE.BufferAttribute(positions, 3)
-  ); // Create the Three.js BufferAttribute and specify that each information is composed of 3 values
-  //
-  //
-  // Material
-  const particlesMaterial = new THREE.PointsMaterial({
-    size: 0.02,
-    sizeAttenuation: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  });
-  // Points
-  const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-  scene.add(particles);
+  // particlesGeometry.setAttribute(
+  //   "position",
+  //   new THREE.BufferAttribute(positions, 3)
+  // ); // Create the Three.js BufferAttribute and specify that each information is composed of 3 values
+  // //
+  // //
+  // // Material
+  // const particlesMaterial = new THREE.PointsMaterial({
+  //   size: 0.02,
+  //   sizeAttenuation: true,
+  //   depthWrite: false,
+  //   blending: THREE.AdditiveBlending,
+  // });
+  // // Points
+  // const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+  // scene.add(particles);
 
   //
   //
@@ -422,7 +485,7 @@ const run = async () => {
   //
   //
   const fog = new THREE.Fog("#000", 5, 15);
-  scene.fog = fog;
+  // scene.fog = fog;
 
   /**
    * Sizes
@@ -474,15 +537,65 @@ const run = async () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor("#000");
 
+  //
+  //
+  //
+  //
+  //
+  //             BLOOM
+  //
+  //
+  //
+  const params = {
+    exposure: 1,
+    bloomStrength: 0.5,
+    bloomThreshold: 0.57,
+    bloomRadius: 0.2,
+  };
+  const renderScene = new RenderPass(scene, camera);
+
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1.5,
+    0.4,
+    0.85
+  );
+  bloomPass.threshold = params.bloomThreshold;
+  bloomPass.strength = params.bloomStrength;
+  bloomPass.radius = params.bloomRadius;
+
+  const composer = new EffectComposer(renderer);
+  composer.addPass(renderScene);
+  composer.addPass(bloomPass);
+
+  //gui
+  gui.add(params, "exposure", 0.1, 2).onChange(function (value) {
+    renderer.toneMappingExposure = Math.pow(value, 4.0);
+  });
+
+  gui.add(params, "bloomThreshold", 0.0, 1.0).onChange(function (value) {
+    bloomPass.threshold = Number(value);
+  });
+
+  gui.add(params, "bloomStrength", 0.0, 3.0).onChange(function (value) {
+    bloomPass.strength = Number(value);
+  });
+
+  gui
+    .add(params, "bloomRadius", 0.0, 1.0)
+    .step(0.01)
+    .onChange(function (value) {
+      bloomPass.radius = Number(value);
+    });
   /**
    * Animate
    */
   const clock = new THREE.Clock();
-  // let previousTime = 0;
+  let previousTime = 0;
   const tick = () => {
     const elapsedTime = clock.getElapsedTime();
-    //   const deltaTime = elapsedTime - previousTime;
-    //   previousTime = elapsedTime;
+    const deltaTime = elapsedTime - previousTime;
+    previousTime = elapsedTime;
 
     // //update models animation
     // if (mixer) {
@@ -495,8 +608,8 @@ const run = async () => {
     controls.update();
 
     // Render
-    renderer.render(scene, camera);
-
+    // renderer.render(scene, camera);
+    composer.render();
     // Call tick again on the next frame
     window.requestAnimationFrame(tick);
   };
