@@ -7,7 +7,7 @@ import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import typefaceFont from "three/examples/fonts/helvetiker_regular.typeface.json";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper.js";
-import { MeshPhysicalMaterial, PointLightHelper } from "three";
+import { MeshPhysicalMaterial, PlaneGeometry, PointLightHelper } from "three";
 import {
   Camera,
   cloneUniformsGroups,
@@ -21,20 +21,108 @@ import {
   SphereGeometry,
 } from "three";
 import { RenderPass, UnrealBloomPass, EffectComposer } from "three-stdlib";
-import { loadAssets } from "./assets";
+import { loadAssets, loadLogo } from "./assets";
+import { Easing, Tween, update } from "@tweenjs/tween.js";
 /**
  * Base
  */
 // Debug
-const gui = new dat.GUI();
 
 // Canvas
 const canvas = document.querySelector("canvas.webgl") as HTMLCanvasElement;
 
 const run = async () => {
+  const scene = new THREE.Scene();
+
+  const sizes = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+
+  const camera = new THREE.PerspectiveCamera(
+    50,
+    sizes.width / sizes.height,
+    0.1,
+    100
+  );
+
+  scene.add(camera);
+
+  window.addEventListener("resize", () => {
+    // Update sizes
+    sizes.width = window.innerWidth;
+    sizes.height = window.innerHeight;
+
+    // Update camera
+    camera.aspect = sizes.width / sizes.height;
+    camera.updateProjectionMatrix();
+
+    // Update renderer
+    renderer.setSize(sizes.width, sizes.height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    composer.setSize(sizes.width, sizes.height);
+  });
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+  });
+
+  renderer.setSize(sizes.width, sizes.height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor("#000");
+
+  const params = {
+    exposure: 1,
+    bloomStrength: 0.5,
+    bloomThreshold: 0.57,
+    bloomRadius: 0.2,
+  };
+
+  const renderScene = new RenderPass(scene, camera);
+
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1.5,
+    0.4,
+    0.85
+  );
+  bloomPass.threshold = params.bloomThreshold;
+  bloomPass.strength = 0;
+  bloomPass.radius = params.bloomRadius;
+
+  const composer = new EffectComposer(renderer);
+  composer.addPass(renderScene);
+  composer.addPass(bloomPass);
+
+  const logoMesh = await loadLogo();
+  logoMesh.position.set(0, 1.2, 0);
+
+  camera.position.x = 0;
+  camera.position.y = 1.2;
+  camera.position.z = 2;
+
+  const planeGeometry = new PlaneGeometry(10, 10);
+  const loadingPlaneMaterial = new MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 1,
+  });
+  const planeMesh = new Mesh(planeGeometry, loadingPlaneMaterial);
+  planeMesh.position.z = -0.05;
+  scene.add(planeMesh);
+
+  scene.add(logoMesh);
+
+  composer.render();
+
   const assets = await loadAssets();
 
-  const scene = new THREE.Scene();
+  const cameraPosition = camera.position;
+
+  // camera.position.x = 0;
+  // camera.position.y = 0;
+  // camera.position.z = 4;
 
   /**
    * Textures
@@ -61,7 +149,7 @@ const run = async () => {
   //              LIGHTS
 
   //ambient
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+  // const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 
   //point1
   const pointLight = new THREE.PointLight("white", 6);
@@ -69,7 +157,6 @@ const run = async () => {
   pointLight.position.set(0, 4, 0.5);
 
   scene.add(pointLight, pointLightHelper);
-  gui.add(pointLight, "intensity", 0, 10, 0.1);
 
   //point2
   const pointLight2 = new THREE.PointLight("pink", 4);
@@ -77,7 +164,6 @@ const run = async () => {
   const pointLightHelper2 = new THREE.PointLightHelper(pointLight2);
 
   scene.add(pointLight2, pointLightHelper2);
-  gui.add(pointLight2, "intensity", 0, 10, 0.1);
 
   //rect
   const rectAreaLight = new THREE.RectAreaLight(0x4e00ff, 2, 1, 1);
@@ -94,8 +180,6 @@ const run = async () => {
   assets.crystalMesh.scale.set(1.2, 1.2, 1.2);
   assets.crystalMesh.position.set(0, 0, -0.5);
   scene.add(assets.crystalMesh);
-  gui.add(assets.crystalMesh.material, "thickness", 0, 10, 0.1);
-  gui.add(assets.crystalMesh.material, "ior", 1, 5, 0.01);
 
   //group
   const flowerTallGroup = new THREE.Group();
@@ -136,8 +220,8 @@ const run = async () => {
     scene.add(grassNew);
   }
 
-  assets.logoMesh.position.set(0, 1.2, 0);
-  scene.add(assets.logoMesh);
+  // assets.logoMesh.position.set(0, 1.2, 0);
+  // scene.add(assets.logoMesh);
 
   //
   //
@@ -180,19 +264,19 @@ const run = async () => {
 
   //projects
   const text1 = generateTextMesh("projects");
-  text1.position.set(-2.5, 1.4, 0);
+  text1.position.set(-2.5, 1.4, -0.1);
 
   //about
   const text2 = generateTextMesh("about");
-  text2.position.set(-1.5, 1.4, 0);
+  text2.position.set(-1.5, 1.4, -0.1);
 
   //ista
   const text3 = generateTextMesh("instagram");
-  text3.position.set(1.5, 1.4, 0);
+  text3.position.set(1.5, 1.4, -0.1);
 
   //more
   const text4 = generateTextMesh("more");
-  text4.position.set(2.5, 1.4, 0);
+  text4.position.set(2.5, 1.4, -0.1);
 
   //add to the scene
   scene.add(text1, text2, text3, text4);
@@ -269,113 +353,70 @@ const run = async () => {
   //
   //
   //
-  const fog = new THREE.Fog("#000", 5, 15);
+  // const fog = new THREE.Fog("#000", 5, 15);
   // scene.fog = fog;
 
   /**
    * Sizes
    */
-  const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  };
-
-  /**
-   * Camera
-   */
-  // Base camera
-  const camera = new THREE.PerspectiveCamera(
-    50,
-    sizes.width / sizes.height,
-    0.1,
-    100
-  );
-  camera.position.x = 0;
-  camera.position.y = 0;
-  camera.position.z = 4;
-  scene.add(camera);
-
-  // Controls
-  const controls = new OrbitControls(camera, canvas);
-  controls.enableDamping = true;
-
-  /**
-   * Renderer
-   */
-  const renderer = new THREE.WebGLRenderer({
-    canvas: canvas,
-  });
-
-  renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor("#000");
-
-  //
-  //
-  //
-  //
-  //
-  //             BLOOM
-  //
-  //
-  //
-  const params = {
-    exposure: 1,
-    bloomStrength: 0.5,
-    bloomThreshold: 0.57,
-    bloomRadius: 0.2,
-  };
-  const renderScene = new RenderPass(scene, camera);
-
-  const bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    1.5,
-    0.4,
-    0.85
-  );
-  bloomPass.threshold = params.bloomThreshold;
-  bloomPass.strength = params.bloomStrength;
-  bloomPass.radius = params.bloomRadius;
-
-  const composer = new EffectComposer(renderer);
-  composer.addPass(renderScene);
-  composer.addPass(bloomPass);
 
   //gui
-  gui.add(params, "exposure", 0.1, 2).onChange(function (value) {
-    renderer.toneMappingExposure = Math.pow(value, 4.0);
-  });
 
-  gui.add(params, "bloomThreshold", 0.0, 1.0).onChange(function (value) {
-    bloomPass.threshold = Number(value);
-  });
+  // const gui = new dat.GUI();
 
-  gui.add(params, "bloomStrength", 0.0, 3.0).onChange(function (value) {
-    bloomPass.strength = Number(value);
-  });
+  //   gui.add(pointLight2, "intensity", 0, 10, 0.1);
 
-  gui
-    .add(params, "bloomRadius", 0.0, 1.0)
-    .step(0.01)
-    .onChange(function (value) {
-      bloomPass.radius = Number(value);
-    });
+  //   gui.add(assets.crystalMesh.material, "thickness", 0, 10, 0.1);
+  //   gui.add(assets.crystalMesh.material, "ior", 1, 5, 0.01);
 
-  window.addEventListener("resize", () => {
-    // Update sizes
-    sizes.width = window.innerWidth;
-    sizes.height = window.innerHeight;
+  //   gui.add(pointLight, "intensity", 0, 10, 0.1);
 
-    // Update camera
-    camera.aspect = sizes.width / sizes.height;
-    camera.updateProjectionMatrix();
+  //   gui.add(params, "exposure", 0.1, 2).onChange(function (value) {
+  //     renderer.toneMappingExposure = Math.pow(value, 4.0);
+  //   });
 
-    // Update renderer
-    // renderer.setSize(sizes.width, sizes.height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  //   // gui.add(params, "bloomThreshold", 0.0, 1.0).onChange(function (value) {
+  //   //   bloomPass.threshold = Number(value);
+  //   // });
 
-    composer.setSize(sizes.width, sizes.height);
-  });
+  //   // gui.add(params, "bloomStrength", 0.0, 3.0).onChange(function (value) {
+  //   //   bloomPass.strength = Number(value);
+  //   // });
+
+  //   gui
+  //     .add(params, "bloomRadius", 0.0, 1.0)
+  //     .step(0.01)
+  //     .onChange(function (value) {
+  //       bloomPass.radius = Number(value);
+  //     });
+
+  new Tween(cameraPosition)
+    .to({ x: 0, y: 0, z: 4 }, 5000)
+    .easing(Easing.Quadratic.InOut)
+    .onUpdate(() => {
+      camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    })
+    .start();
+
+  const loadingPlaneOpacity = { value: 1 };
+
+  new Tween(loadingPlaneOpacity)
+    .to({ value: 0 }, 4000)
+    .easing(Easing.Quadratic.InOut)
+    .onUpdate(() => {
+      loadingPlaneMaterial.opacity = loadingPlaneOpacity.value;
+    })
+    .start();
+
+  // console.log(params.bloomThreshold);
+  const loadingBloom = { strength: 0.0 };
+  new Tween(loadingBloom)
+    .to({ strength: params.bloomStrength }, 4000)
+    .easing(Easing.Cubic.In)
+    .onUpdate(() => {
+      bloomPass.strength = loadingBloom.strength;
+    })
+    .start();
 
   /**
    * Animate
@@ -394,7 +435,9 @@ const run = async () => {
     assets.crystalMesh.rotation.y = elapsedTime * 0.3;
 
     // Update controls
-    controls.update();
+    // controls.update();
+
+    update(elapsedTime * 1000);
 
     // Render
     // renderer.render(scene, camera);

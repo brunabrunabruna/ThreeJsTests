@@ -12,6 +12,19 @@ import { FontLoader } from "three-stdlib";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { ConcatenationScope } from "webpack";
 
+export const loadLogo = async () => {
+  const gltfLoader = new GLTFLoader();
+  const logo = await gltfLoader.loadAsync("models/my_logo.gltf");
+
+  const logoMesh = logo.scene.children[0] as Mesh;
+
+  logoMesh.material = new MeshBasicMaterial({
+    color: "white",
+  });
+
+  return logoMesh;
+};
+
 export const loadAssets = async () => {
   const gltfLoader = new GLTFLoader();
   const textureLoader = new TextureLoader();
