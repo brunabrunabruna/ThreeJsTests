@@ -19,7 +19,19 @@ export const loadLogo = async () => {
   const logoMesh = logo.scene.children[0] as Mesh;
 
   logoMesh.material = new MeshBasicMaterial({
-    color: "white",
+    color: "#cab4e2",
+  });
+
+  return logoMesh;
+};
+export const loadLogoNew = async () => {
+  const gltfLoader = new GLTFLoader();
+  const logo = await gltfLoader.loadAsync("models/my_logo.gltf");
+
+  const logoMesh = logo.scene.children[0] as Mesh;
+
+  logoMesh.material = new MeshBasicMaterial({
+    color: "#cab4e2",
   });
 
   return logoMesh;
@@ -43,11 +55,13 @@ export const loadAssets = async () => {
       heart,
       flowersTallStems,
       flowersTallFlower,
+      flowersTallCenter,
       flowersShortStems,
       flowersShortFlowers,
       flowersShortCenter,
       grass,
-      logo,
+      bush,
+      // logo,
       font,
     ] = await Promise.all([
       new Promise<CubeTexture>((resolve, reject) => {
@@ -74,14 +88,16 @@ export const loadAssets = async () => {
       textureLoader.loadAsync("/textures/clouds.jpg"),
       gltfLoader.loadAsync("models/crystal.gltf"),
       textureLoader.loadAsync("textures/1.png"),
-      gltfLoader.loadAsync("models/heart.gltf"),
+      gltfLoader.loadAsync("models/heart.glb"),
       gltfLoader.loadAsync("models/flowers_tall_stems.glb"),
       gltfLoader.loadAsync("models/flowers_tall_flowers.glb"),
+      gltfLoader.loadAsync("models/flowers_tall_center.glb"),
       gltfLoader.loadAsync("models/flowers_short_stems.glb"),
       gltfLoader.loadAsync("models/flowers_short_flowers.glb"),
       gltfLoader.loadAsync("models/flowers_short_center.glb"),
       gltfLoader.loadAsync("models/grass.glb"),
-      gltfLoader.loadAsync("models/my_logo.gltf"),
+      gltfLoader.loadAsync("models/bush.glb"),
+      // gltfLoader.loadAsync("models/my_logo.gltf"),
 
       fontLoader.loadAsync("/fonts/helvetiker_regular.typeface.json"),
     ]);
@@ -105,32 +121,35 @@ export const loadAssets = async () => {
     crystalMaterial.thickness = 5;
     crystalMesh.material = crystalMaterial;
 
-    const logoMesh = logo.scene.children[0] as Mesh;
+    // const logoMesh = logo.scene.children[0] as Mesh;
 
     // logoMesh.material = new MeshPhysicalMaterial({
     //   color: "white",
     //   metalness: 0.5,
     // });
 
-    logoMesh.material = new MeshBasicMaterial({
-      color: "white",
-    });
+    // logoMesh.material = new MeshBasicMaterial({
+    //   color: "white",
+    // });
 
     return {
       particlesTex,
       cloudsTex,
       crystalMesh,
+      crystalMaterial,
       heartMesh: heart.scene.children[0] as Mesh,
       flowersTallStemsMesh: flowersTallStems.scene.children[0] as Mesh,
       flowersTallFlowersMesh: flowersTallFlower.scene.children[0] as Mesh,
+      flowersTallCenterMesh: flowersTallCenter.scene.children[0] as Mesh,
       flowersShortStemsMesh: flowersShortStems.scene.children[0] as Mesh,
       flowersShortCenterMesh: flowersShortCenter.scene.children[0] as Mesh,
       flowersShortFlowersMesh: flowersShortFlowers.scene.children[0] as Mesh,
       grassMesh: grass.scene.children[0] as Mesh,
-      logoMesh,
+      // logoMesh,
+      bushMesh: bush.scene.children[0] as Mesh,
       font,
     };
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
   }
 };
